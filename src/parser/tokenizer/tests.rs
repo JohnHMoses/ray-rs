@@ -1,4 +1,10 @@
 #[cfg(test)]
+use super::token::Token::*;
+static KEYWORD_SAMPLE: &'static str = "camera point_light";
+static WHITESPACE_SAMPLE: &'static str = " \t\t\n\r";
+static NUMBERS_SAMPLE: &'static str = "-10 500.00001 -0.0 9";
+static PUNCTUATION_SAMPLE: &'static str = ",;(){}";
+
 static CAMERA_SAMPLE: &'static str = "camera {
 	position = (4,0,0);
 	viewdir = (-1,0,0);
@@ -31,12 +37,53 @@ box {
     };
 }";
 
+#[test]
+fn keyword_tokenize_test() {
+    use super::*;
+    let tokenizer = Tokenizer::new(KEYWORD_SAMPLE);
+    let tokens: Vec<token::Token> = tokenizer.collect();
+    let expected = [Camera, PointLight];
+    assert!(tokens.eq(&expected));
+}
+#[test]
+fn whitespace_tokenize_test() {
+    use super::*;
+    let tokenizer = Tokenizer::new(WHITESPACE_SAMPLE);
+    let tokens: Vec<token::Token> = tokenizer.collect();
+    assert_eq!(tokens.len(), 0);
+}
+
+#[test]
+fn number_tokenize_test() {
+    use super::*;
+    let tokenizer = Tokenizer::new(NUMBERS_SAMPLE);
+    let tokens: Vec<token::Token> = tokenizer.collect();
+    let expected = [Scalar(-10f64), Scalar(500.00001f64), Scalar(0.0f64), Scalar(9f64)];
+    assert!(tokens.iter().eq(expected.iter()));
+}
+#[test]
+fn punctuation_tokenize_test() {
+    use super::*;
+    let tokenizer = Tokenizer::new(PUNCTUATION_SAMPLE);
+    let tokens: Vec<token::Token> = tokenizer.collect();
+    let expected = [Comma, Semicolon, LParen, RParen, LBrace, RBrace];
+    println!("{:?}", tokens);
+    println!("{:?}", expected.iter());
+    assert!(tokens.iter().eq(expected.iter()));
+}
 
 #[test]
 fn camera_parse_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(CAMERA_SAMPLE.chars().peekable());
+    let tokenizer = Tokenizer::new(CAMERA_SAMPLE);
     let tokens: Vec<token::Token> = tokenizer.collect();
-
-    assert!(tokens.len() > 0)
+    let expected = [Camera, LBrace,
+        Ident("position"), Equals, LParen, Scalar(4f64), Comma, Scalar(0f64), Comma, Scalar(0f64), RParen, Semicolon,
+        Ident("viewdir"), Equals, LParen, Minus, Scalar(1f64), Comma, Scalar(0f64), Comma, Scalar(0f64), RParen, Semicolon,
+        Ident("aspectratio"), Equals, Scalar(1f64), Semicolon,
+        Ident("updir"), Equals, LParen, Scalar(0f64), Comma, Scalar(1f64), Comma, Scalar(0f64), RParen, Semicolon,
+        RBrace];
+    //println!("{:?}", tokens);
+    //println!("{:?}", expected.iter());
+    assert!(tokens.iter().eq(expected.iter()))
 }

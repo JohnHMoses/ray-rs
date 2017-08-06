@@ -11,6 +11,10 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 
+#[macro_use]
+extern crate lazy_static;
+extern crate regex;
+
 use config::Config;
 //use parser::Parser;
 

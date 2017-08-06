@@ -1,20 +1,23 @@
-
-#[derive(Copy, Clone)]
-pub enum Token {
+#[derive(PartialEq, Debug, Clone)]
+pub enum Token<'a> {
     Unknown,                    // Placeholder
     Eofsym,                     // End Of File
     SbtRaytracer,
 
-    Ident,                      // Ident (gets Enclosed In Quotes In Trace Files)
-    Scalar,                     // Scalar Values
+    Ident(& 'a str),                      // Ident (gets Enclosed In Quotes In Trace Files)
+
     Symtrue,
     Symfalse,
 
-    Lparen, Rparen,             // Punctuation
-    Lbrace, Rbrace,
+    LParen, RParen,             // Punctuation
+    LBrace, RBrace,
+    LBracket, RBracket,
     Comma,
+    Minus,
     Equals,
     Semicolon,
+    StrLit(& 'a str),
+    Scalar(f64),                     // Scalar Values
 
     Camera,                     // Camera Primitive
     PointLight,                // Lights
@@ -30,7 +33,7 @@ pub enum Token {
     Square,
     Cylinder,
     Cone,
-    Trimesh,  
+    Trimesh,
 
     Position, Viewdir,          // Keywords Affecting Primitives
     Updir, Aspectratio,
@@ -41,7 +44,7 @@ pub enum Token {
     Height,
     BottomRadius,
     TopRadius,
-    Quaternian,                 // ???
+    Quaternion,                 // ???
 
     Polypoints, Normals,        // Keywords Affecting Polygons
     Materials, Faces,
