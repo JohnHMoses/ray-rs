@@ -4,13 +4,12 @@ use std::env;
 use std::process;
 
 use ray_rs::config;
-use ray_rs::parser;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     let config = config::Config::new(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguements: {}", err);
+        println!("Problem parsing arguments: {}", err);
         process::exit(1);
     });
 
