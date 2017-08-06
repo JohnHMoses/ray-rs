@@ -1,0 +1,8 @@
+[package]
+name = "ray_rs"
+version = "0.1.0"
+authors = ["JohnHMoses <john.moses445@gmail.com>"]
+
+[dependencies]
+cgmath = "0.15"
+image = "0.15"
