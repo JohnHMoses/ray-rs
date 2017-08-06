@@ -1,5 +1,0 @@
-
-
-struct tokenizer {
-	content: String,
-}
