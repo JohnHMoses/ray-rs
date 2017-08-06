@@ -4,6 +4,8 @@ pub struct Config {
     pub ray_filename: String,
     /// An output filename for our rendered scene
     pub output_filename: String,
+    /// tuple representing output image dimensions
+    pub output_dimensions: (u32, u32),
 }
 
 impl Config {
@@ -19,7 +21,13 @@ impl Config {
 
         let ray_filename = args[1].clone();
         let output_filename = args[2].clone();
+        // TODO: unsafe unwrapping should be switched out for returning the actual error code to the calling function
+        let output_dimensions = (args[3].clone().parse().unwrap(), args[4].clone().parse().unwrap());
 
-        Ok(Config { ray_filename, output_filename })
+        Ok(Config { 
+            ray_filename, 
+            output_filename,
+            output_dimensions
+        })
     }
 }
