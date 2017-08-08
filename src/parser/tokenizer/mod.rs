@@ -6,7 +6,7 @@ use regex::Regex;
 
 use self::token::Token;
 
-struct Tokenizer<'a> {
+pub struct Tokenizer<'a> {
     /// input stream
     input: &'a str,
     /// last read token, if it exists

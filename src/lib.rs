@@ -1,20 +1,25 @@
 #![allow(dead_code)]
 
 extern crate image;
-
-pub mod config;
-pub mod parser;
-
-use image::{ImageBuffer, Rgb};
-
-use std::error::Error;
-use std::fs::File;
-use std::io::Read;
+extern crate cgmath;
 
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
 
+pub mod config;
+pub mod parser;
+pub mod scene;
+
+// external crates
+use image::{ImageBuffer, Rgb};
+
+// standard lib
+use std::error::Error;
+use std::fs::File;
+use std::io::Read;
+
+// internal
 use config::Config;
 //use parser::Parser;
 
