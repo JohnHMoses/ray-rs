@@ -1,11 +1,12 @@
 pub mod token;
 pub mod tests;
+
 use std::iter::Iterator;
 use regex::Regex;
 
-
 use self::token::Token;
 
+// TODO: rename RayTokenizer
 pub struct Tokenizer<'a> {
     /// input stream
     input: &'a str,
@@ -134,9 +135,8 @@ impl<'a> Tokenizer<'a>  {
 
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Token<'a>;
-    fn next(& mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         return self.next_token();
     }
-
 }
 

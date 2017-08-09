@@ -1,21 +1,40 @@
 mod tokenizer;
+mod ray_scene_builder;
 
 use self::tokenizer::Tokenizer;
+use self::ray_scene_builder::SceneBuilder;
+
 use super::scene::Scene;
 
-pub struct Parser<'a> {
+/// Trait a scene-file parser must implement to return a generalized
+/// Scene that our ray tracer understands how to render
+pub trait Parser {
+   fn parse_scene(&mut self) -> Scene;
+}
+
+/// Parser for `.ray` files
+pub struct RayParser<'a> {
 	tokenizer: Tokenizer<'a>,
 }
 
-impl<'a> Parser<'a> {
-	pub fn new(input: &str) -> Parser {
+impl<'a> RayParser<'a> {
+	/// Given a string slice representing a `.ray` file, creates
+	/// a parser that can return a generalized Scene
+	pub fn new(input: &str) -> RayParser {
 		let tokenizer = Tokenizer::new(input);
 
-		Parser { tokenizer }
+		RayParser { tokenizer }
 	}
+}
 
-	pub fn parse_scene(&self) -> Scene {
-		let scene = Scene::new();
-		scene
+impl<'a> Parser for RayParser<'a> {
+	fn parse_scene(&mut self) -> Scene {
+		let mut scene_builder = SceneBuilder::new();
+
+		// build internal scene representation
+		scene_builder.parse_scene(&mut self.tokenizer);
+
+		// render internal representation into generalized Scene
+		scene_builder.create_scene()
 	}
 }

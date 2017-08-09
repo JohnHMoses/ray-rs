@@ -8,7 +8,7 @@ use self::objects::*;
 
 pub struct Scene {
 	transform_root: TransformNode,
-	objects: Vec<Box<Geometry>>,
+	objects: Vec<Box<SceneObject>>,
 	lights: Vec<Light>,
 	camera: Camera,
 	// TODO: KdTree
@@ -62,9 +62,8 @@ impl TransformNode {
 	}
 }
 
-trait Geometry {
+trait SceneObject {
 	fn intersect(&self, ray: &Ray, isect: &mut Intersect) -> bool;
-
 }
 
 pub struct Camera {
@@ -90,10 +89,6 @@ impl Camera {
 			aspect_ratio: 0.0,
 		}
 	}
-}
-
-pub struct MaterialSceneObject {
-	material: Material,
 }
 
 pub struct Material {
