@@ -1,7 +1,19 @@
 [package]
 name = "ray_rs"
 version = "0.1.0"
-authors = ["JohnHMoses <john.moses445@gmail.com>"]
+readme = "README.md"
+documentation = ""
+repository = ""
+homepage = ""
+license = "MIT/Apache-2.0"
+authors = [
+	"John Moses <john.moses445@gmail.com>",
+	"Nick Walker <nick@nickwalker.us>",
+]
+
+description = """
+Modest attempt at creating a ray tracer in rust
+"""
 
 [dependencies]
 cgmath = "0.15"
