@@ -17,19 +17,7 @@ pub struct Scene {
 
 }
 
-impl Scene {
-	pub fn new() -> Scene {
-		Scene {
-			transform_root: TransformNode::new(None, Matrix4::from_value(1.0)),
-			objects: Vec::new(),
-			lights: Vec::new(),
-			camera: Camera::new(),
-			scene_bounds: None,
-		}
-	}
-}
-
-struct TransformNode {
+pub struct TransformNode {
 	parent: Option<Weak<TransformNode>>,
 	children: Vec<TransformNode>,
 	// TODO: better names once we know what these are
@@ -39,6 +27,10 @@ struct TransformNode {
 }
 
 impl TransformNode {
+    pub fn root() -> TransformNode {
+        TransformNode::new(None, Matrix4::identity())
+    }
+
 	pub fn new(parent: Option<Weak<TransformNode>>, xform: Matrix4<f64>) -> TransformNode {
 		let xform = if let Some(ref weak_parent) = parent {
 			// use the parents xform if it exists

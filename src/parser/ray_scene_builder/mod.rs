@@ -9,9 +9,12 @@ use super::*;
 use super::tokenizer::Tokenizer;
 use super::tokenizer::token::Token;
 
+use super::super::scene::TransformNode;
+
 pub struct SceneBuilder {
 	lights: Vec<LightBuilder>,
-	objects: Vec<TransformableObjectBuilder>,
+	objects: Vec<TransformableElementBuilder>,
+    root_transform: TransformNode,
 	camera: Option<CameraBuilder>,
 	ambient: Option<Vector3<f64>>,
 	// TODO?: material? Parser.cpp has some weird code for
@@ -23,7 +26,7 @@ impl SceneBuilder {
 		SceneBuilder {
 			lights: Vec::new(),
 			objects: Vec::new(),
-            root_transform: TransformNode::new(),
+            root_transform: TransformNode::root(),
 			camera: None,
 			ambient: None,
 		}
@@ -48,8 +51,9 @@ impl SceneBuilder {
                 Token::Scale |
                 Token::Transform |
                 Token::LBrace => {
-                    objects.add( TransformableObjectBuilder::new(tokenizer, root_transform) );
-                }
+                    self.objects.push( TransformableElementBuilder::new()
+                        .parse_transformable_element(tokenizer, &self.root_transform) );
+                },
                 Token::PointLight => unimplemented!(),
                 Token::DirectionalLight => unimplemented!(),
                 Token::AmbientLight => unimplemented!(),
@@ -63,18 +67,18 @@ impl SceneBuilder {
 
 	pub fn create_scene(&self) -> Scene {
 		// TODO
-		Scene::new()
+        unimplemented!();
 	}
 	// TODO: setters
 }
 
-enum TransformableElement {
+enum TransformableElementType {
     Geometry(GeometryBuilder),
     Group(GroupBuilder),
 }
 
 struct TransformableElementBuilder {
-    element: TransformableElement,
+    element: Option<TransformableElementType>,
 }
 
 impl TransformableElementBuilder {
@@ -95,10 +99,10 @@ impl TransformableElementBuilder {
                 Token::Rotate |
                 Token::Scale |
                 Token::Transform => {
-                    self.element = Geometry(GeometryBuilder::new(tokenizer, transform_node));
+                    self.element = TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node));
                 },
                 Token::LBrace => {
-                    self.element = Group(GroupBuilder::new(tokenizer, transform_node));
+                    self.element = TransformableElementType::Group(GroupBuilder::new(tokenizer, transform_node));
                 },
                 Token::Material => unimplemented!(),
                 _ => unimplemented!(), // Syntax error
@@ -106,9 +110,12 @@ impl TransformableElementBuilder {
             None => unimplemented!(), // Syntax error
         }
 
-
     }
 }
 
 struct LightBuilder;
 struct CameraBuilder;
+struct GeometryBuilder;
+struct GroupBuilder;
+
+
