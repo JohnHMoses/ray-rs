@@ -123,8 +123,34 @@ struct CameraBuilder;
 struct GeometryBuilder {
    element: Option<Box<GeometryBuilderSubtype>>,
 }
-impl GeometryBuilder {
 
+// NOTE: Geometry builder doesn't have the option of being empty in a well-formed
+//       .ray file. Consider making it handle a generic type T: GeometryBuilderSubtype
+//       and have a single new_and_parse_geometry() method.
+impl GeometryBuilder {
+    pub fn new() -> GeometryBuilder {
+        GeometryBuilder { element: None }
+    }
+
+    pub fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
+        let token_option = tokenizer.peek();
+        match token_option {
+            Some(token) => match token {
+                Token::Sphere => unimplemented!(),
+                Token::Box => unimplemented!(),
+                Token::Square => unimplemented!(),
+                Token::Cylinder => unimplemented!(),
+                Token::Cone => unimplemented!(),
+                Token::Trimesh => unimplemented!(),
+                Token::Translate => unimplemented!(),
+                Token::Rotate => unimplemented!(),
+                Token::Scale => unimplemented!(),
+                Token::Transform => unimplemented!(),
+                _ => unimplemented!(), // syntax error
+            },
+            None => unimplemented!(), // logic error in parsing
+        }
+    }
 }
 
 struct GroupBuilder;
@@ -132,13 +158,30 @@ impl GroupBuilder {
 
 }
 
+// All of these must contain their object, and are technically not optional
 trait GeometryBuilderSubtype {
-
+    fn new_and_parse(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilderSubtype;
 }
 
 struct SphereBuilder;
 impl GeometryBuilderSubtype for SphereBuilder {
+    fn new_and_parse(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilderSubtype {
+        tokenizer.read(Token::Sphere)?;
+        tokenizer.read(Token::LBrace)?;
 
+        loop {
+            let token_option = tokenizer.peek();
+            match token_option {
+                Some(token) => match token {
+                    Token::Material => unimplemented!(),
+                    Token::Name => unimplemented!(),
+                    Token::RBrace => unimplemented!(),
+                    _ => unimplemented!(), // syntax error, unexpected token
+                },
+                None => unimplemented!(), // synxtax error, EOF
+            }
+        }
+    }
 }
 
 struct BoxBuilder;
