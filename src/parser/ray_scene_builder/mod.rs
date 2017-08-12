@@ -32,11 +32,12 @@ impl SceneBuilder {
 		}
 	}
 
-	pub fn parse_scene(&mut self, tokenizer: &mut Tokenizer) {
+	pub fn parse_scene(self, tokenizer: &mut Tokenizer) -> SceneBuilder {
 		// TODO version parsing at top
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
 		//}
+        // TODO: this should loop until EOF, then return
         let token_option = tokenizer.peek();
         match token_option {
             Some(token) => match token {
@@ -63,6 +64,8 @@ impl SceneBuilder {
             },
             None => unimplemented!(), // EOF
         }
+
+        self
 	}
 
 	pub fn create_scene(&self) -> Scene {
@@ -86,7 +89,7 @@ impl TransformableElementBuilder {
         TransformableElementBuilder { element: None }
     }
 
-    pub fn parse_transformable_element(&mut self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
+    pub fn parse_transformable_element(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
         let token_option = tokenizer.peek();
         match token_option {
             Some(token) => match token {
@@ -99,10 +102,11 @@ impl TransformableElementBuilder {
                 Token::Rotate |
                 Token::Scale |
                 Token::Transform => {
-                    self.element = TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node));
+                    // TODO: check if ; is necessary
+                    self.element = Some(TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node)))
                 },
                 Token::LBrace => {
-                    self.element = TransformableElementType::Group(GroupBuilder::new(tokenizer, transform_node));
+                    self.element = Some(TransformableElementType::Group(GroupBuilder::new(tokenizer, transform_node)))
                 },
                 Token::Material => unimplemented!(),
                 _ => unimplemented!(), // Syntax error
@@ -110,12 +114,70 @@ impl TransformableElementBuilder {
             None => unimplemented!(), // Syntax error
         }
 
+        self
     }
 }
 
 struct LightBuilder;
 struct CameraBuilder;
-struct GeometryBuilder;
-struct GroupBuilder;
+struct GeometryBuilder {
+   element: Option<Box<GeometryBuilderSubtype>>,
+}
+impl GeometryBuilder {
 
+}
+
+struct GroupBuilder;
+impl GroupBuilder {
+
+}
+
+trait GeometryBuilderSubtype {
+
+}
+
+struct SphereBuilder;
+impl GeometryBuilderSubtype for SphereBuilder {
+
+}
+
+struct BoxBuilder;
+impl GeometryBuilderSubtype for BoxBuilder {
+
+}
+
+struct CylinderBuilder;
+impl GeometryBuilderSubtype for CylinderBuilder {
+
+}
+
+struct ConeBuilder;
+impl GeometryBuilderSubtype for ConeBuilder {
+
+}
+
+struct TrimeshBuilder;
+impl GeometryBuilderSubtype for TrimeshBuilder {
+
+}
+
+struct TranslateBuilder;
+impl GeometryBuilderSubtype for TranslateBuilder {
+
+}
+
+struct RotateBuilder;
+impl GeometryBuilderSubtype for RotateBuilder {
+
+}
+
+struct ScaleBuilder;
+impl GeometryBuilderSubtype for ScaleBuilder {
+
+}
+
+struct TransformBuilder;
+impl GeometryBuilderSubtype for TransformBuilder {
+
+}
 

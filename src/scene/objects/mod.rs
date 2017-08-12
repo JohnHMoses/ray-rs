@@ -42,3 +42,13 @@ pub enum LightType {
 	DirectionalLight { orientation: Vector3<f64> },
 	PointLight { pos: Vector3<f64>, a: f64, b: f64, c: f64 }, // pos, a, b, c
 }
+
+// TODO: move these to their own files
+// rename of Box because Box is a heap pointer type in Rust
+struct SceneBox;
+struct Cylinder;
+struct Sphere;
+struct Square;
+struct Cone;
+struct Trimesh;
+struct TrimeshFace;
