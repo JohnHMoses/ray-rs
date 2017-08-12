@@ -158,9 +158,50 @@ impl GeometryBuilder {
     }
 }
 
-struct GroupBuilder;
-impl GroupBuilder {
+struct GroupBuilder {
+    elements: Vec<TransformableElementBuilder>,
+}
 
+impl GroupBuilder {
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GroupBuilder {
+        GroupBuilder {
+            elements: Vec::new(),
+        }.parse_group(tokenizer, transform_node)
+    }
+
+    fn parse_group(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GroupBuilder {
+        tokenizer.read( Token::LBrace )?;
+
+        loop {
+            let token_option = tokenizer.peek();
+            match token_option {
+                Some(token) => match token {
+                    Token::Sphere |
+                    Token::Box |
+                    Token::Square |
+                    Token::Cylinder |
+                    Token::Cone |
+                    Token::Trimesh |
+                    Token::Translate |
+                    Token::Rotate |
+                    Token::Scale |
+                    Token::Transform |
+                    Token::LBrace => {
+                        self.elements.push( TransformableElementBuilder::new(tokenizer, transform_node) )
+                    },
+                    Token::RBrace => {
+                        tokenizer.read( Token::RBrace )?;
+                        break; // TODO: does this break loop or match?
+                    },
+                    Token::Material => unimplemented!(),
+                    _ => unimplemented!(), // syntax error
+                },
+                None => unimplemented!(), // unexpected EOF
+            }
+        }
+
+        self
+    }
 }
 
 // TODO: these should hold materials when materials are added
