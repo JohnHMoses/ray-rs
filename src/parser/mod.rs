@@ -29,12 +29,10 @@ impl<'a> RayParser<'a> {
 
 impl<'a> Parser for RayParser<'a> {
 	fn parse_scene(&mut self) -> Scene {
-		let mut scene_builder = SceneBuilder::new();
-
 		// build internal scene representation
-		scene_builder.parse_scene(&mut self.tokenizer);
+		let mut scene_builder = SceneBuilder::new(&mut self.tokenizer);
 
-		// render internal representation into generalized Scene
+		// render internal representation into generalized Scene and return it
 		scene_builder.create_scene()
 	}
 }

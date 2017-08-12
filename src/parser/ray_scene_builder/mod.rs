@@ -22,17 +22,17 @@ pub struct SceneBuilder {
 }
 
 impl SceneBuilder {
-	pub fn new() -> SceneBuilder {
+	pub fn new(tokenizer: &mut Tokenizer) -> SceneBuilder {
 		SceneBuilder {
 			lights: Vec::new(),
 			objects: Vec::new(),
             root_transform: TransformNode::root(),
 			camera: None,
 			ambient: None,
-		}
+		}.parse_scene(tokenizer)
 	}
 
-	pub fn parse_scene(self, tokenizer: &mut Tokenizer) -> SceneBuilder {
+	fn parse_scene(self, tokenizer: &mut Tokenizer) -> SceneBuilder {
 		// TODO version parsing at top
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
@@ -52,8 +52,7 @@ impl SceneBuilder {
                 Token::Scale |
                 Token::Transform |
                 Token::LBrace => {
-                    self.objects.push( TransformableElementBuilder::new()
-                        .parse_transformable_element(tokenizer, &self.root_transform) );
+                    self.objects.push( TransformableElementBuilder::new(tokenizer, &self.root_transform) )
                 },
                 Token::PointLight => unimplemented!(),
                 Token::DirectionalLight => unimplemented!(),
@@ -85,11 +84,13 @@ struct TransformableElementBuilder {
 }
 
 impl TransformableElementBuilder {
-    pub fn new() -> TransformableElementBuilder {
-        TransformableElementBuilder { element: None }
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
+        TransformableElementBuilder {
+            element: None,
+        }.parse_transformable_element(tokenizer, transform_node)
     }
 
-    pub fn parse_transformable_element(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
+    fn parse_transformable_element(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
         let token_option = tokenizer.peek();
         match token_option {
             Some(token) => match token {
@@ -121,18 +122,20 @@ impl TransformableElementBuilder {
 struct LightBuilder;
 struct CameraBuilder;
 struct GeometryBuilder {
-   element: Option<Box<GeometryBuilderSubtype>>,
+   element: Option<GeometryBuilderSubtype>,
 }
 
 // NOTE: Geometry builder doesn't have the option of being empty in a well-formed
 //       .ray file. Consider making it handle a generic type T: GeometryBuilderSubtype
 //       and have a single new_and_parse_geometry() method.
 impl GeometryBuilder {
-    pub fn new() -> GeometryBuilder {
-        GeometryBuilder { element: None }
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
+        GeometryBuilder {
+            element: None,
+        }.parse_geometry(tokenizer, transform_node)
     }
 
-    pub fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
+    fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
         let token_option = tokenizer.peek();
         match token_option {
             Some(token) => match token {
@@ -150,6 +153,8 @@ impl GeometryBuilder {
             },
             None => unimplemented!(), // logic error in parsing
         }
+
+        self
     }
 }
 
@@ -158,14 +163,23 @@ impl GroupBuilder {
 
 }
 
-// All of these must contain their object, and are technically not optional
-trait GeometryBuilderSubtype {
-    fn new_and_parse(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilderSubtype;
+// TODO: these should hold materials when materials are added
+enum GeometryBuilderSubtype {
+    Sphere,
+    Box,
+    Square,
+    Cylinder,
+    Cone,
+    Trimesh,
+    Translate,
+    Rotate,
+    Scale,
+    Transform,
 }
 
 struct SphereBuilder;
-impl GeometryBuilderSubtype for SphereBuilder {
-    fn new_and_parse(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilderSubtype {
+impl SphereBuilder {
+    fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> SphereBuilder {
         tokenizer.read(Token::Sphere)?;
         tokenizer.read(Token::LBrace)?;
 
@@ -181,46 +195,8 @@ impl GeometryBuilderSubtype for SphereBuilder {
                 None => unimplemented!(), // synxtax error, EOF
             }
         }
+
+        SphereBuilder { }
     }
-}
-
-struct BoxBuilder;
-impl GeometryBuilderSubtype for BoxBuilder {
-
-}
-
-struct CylinderBuilder;
-impl GeometryBuilderSubtype for CylinderBuilder {
-
-}
-
-struct ConeBuilder;
-impl GeometryBuilderSubtype for ConeBuilder {
-
-}
-
-struct TrimeshBuilder;
-impl GeometryBuilderSubtype for TrimeshBuilder {
-
-}
-
-struct TranslateBuilder;
-impl GeometryBuilderSubtype for TranslateBuilder {
-
-}
-
-struct RotateBuilder;
-impl GeometryBuilderSubtype for RotateBuilder {
-
-}
-
-struct ScaleBuilder;
-impl GeometryBuilderSubtype for ScaleBuilder {
-
-}
-
-struct TransformBuilder;
-impl GeometryBuilderSubtype for TransformBuilder {
-
 }
 
