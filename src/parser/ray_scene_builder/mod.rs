@@ -11,7 +11,7 @@ use super::tokenizer::token::Token;
 
 use super::super::scene::TransformNode;
 
-pub struct SceneBuilder {
+pub struct RaySceneBuilder {
 	lights: Vec<LightBuilder>,
 	objects: Vec<TransformableElementBuilder>,
     root_transform: TransformNode,
@@ -21,9 +21,9 @@ pub struct SceneBuilder {
 	//		  top level material parsering
 }
 
-impl SceneBuilder {
-	pub fn new(tokenizer: &mut Tokenizer) -> SceneBuilder {
-		SceneBuilder {
+impl RaySceneBuilder {
+	pub fn new(tokenizer: &mut Tokenizer) -> RaySceneBuilder {
+		RaySceneBuilder {
 			lights: Vec::new(),
 			objects: Vec::new(),
             root_transform: TransformNode::root(),
@@ -32,7 +32,7 @@ impl SceneBuilder {
 		}.parse_scene(tokenizer)
 	}
 
-	fn parse_scene(self, tokenizer: &mut Tokenizer) -> SceneBuilder {
+	fn parse_scene(self, tokenizer: &mut Tokenizer) -> RaySceneBuilder {
 		// TODO version parsing at top
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
@@ -156,6 +156,26 @@ impl GeometryBuilder {
 
         self
     }
+
+    fn parse_unit_object(tokenizer: &mut Tokenizer, transform_node: &TransformNode) ->  GeometryBuilderSubtype {
+        tokenizer.read(Token::Sphere)?;
+        tokenizer.read(Token::LBrace)?;
+
+        loop {
+            let token_option = tokenizer.peek();
+            match token_option {
+                Some(token) => match token {
+                    Token::Material => unimplemented!(),
+                    Token::Name => unimplemented!(),
+                    Token::RBrace => unimplemented!(),
+                    _ => unimplemented!(), // syntax error, unexpected token
+                },
+                None => unimplemented!(), // synxtax error, EOF
+            }
+        }
+
+        SphereBuilder { }
+    }
 }
 
 struct GroupBuilder {
@@ -191,7 +211,7 @@ impl GroupBuilder {
                     },
                     Token::RBrace => {
                         tokenizer.read( Token::RBrace )?;
-                        break; // TODO: does this break loop or match?
+                        break;
                     },
                     Token::Material => unimplemented!(),
                     _ => unimplemented!(), // syntax error
@@ -220,24 +240,6 @@ enum GeometryBuilderSubtype {
 
 struct SphereBuilder;
 impl SphereBuilder {
-    fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> SphereBuilder {
-        tokenizer.read(Token::Sphere)?;
-        tokenizer.read(Token::LBrace)?;
 
-        loop {
-            let token_option = tokenizer.peek();
-            match token_option {
-                Some(token) => match token {
-                    Token::Material => unimplemented!(),
-                    Token::Name => unimplemented!(),
-                    Token::RBrace => unimplemented!(),
-                    _ => unimplemented!(), // syntax error, unexpected token
-                },
-                None => unimplemented!(), // synxtax error, EOF
-            }
-        }
-
-        SphereBuilder { }
-    }
 }
 

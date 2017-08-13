@@ -2,7 +2,7 @@ mod tokenizer;
 mod ray_scene_builder;
 
 use self::tokenizer::Tokenizer;
-use self::ray_scene_builder::SceneBuilder;
+use self::ray_scene_builder::RaySceneBuilder;
 
 use super::scene::Scene;
 
@@ -30,7 +30,7 @@ impl<'a> RayParser<'a> {
 impl<'a> Parser for RayParser<'a> {
 	fn parse_scene(&mut self) -> Scene {
 		// build internal scene representation
-		let mut scene_builder = SceneBuilder::new(&mut self.tokenizer);
+		let mut scene_builder = RaySceneBuilder::new(&mut self.tokenizer);
 
 		// render internal representation into generalized Scene and return it
 		scene_builder.create_scene()
