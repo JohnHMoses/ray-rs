@@ -5,13 +5,17 @@
 
 use cgmath::{Vector3};
 
+use std::iter::Peekable;
+use std::slice::Iter;
+
 use super::*;
+use super::error::TokenizationError;
 use super::ray_tokenizer::RayTokenizer;
 use super::ray_tokenizer::Token;
 
 use super::super::scene::TransformNode;
 
-type Tokenizer<'a> = RayTokenizer<'a>;
+type Tokenizer<'a> = Peekable<Iter<'a, Token<'a>>>;
 
 pub struct RaySceneBuilder {
 	lights: Vec<LightBuilder>,
@@ -24,17 +28,20 @@ pub struct RaySceneBuilder {
 }
 
 impl RaySceneBuilder {
-	pub fn new(tokenizer: &mut Tokenizer) -> RaySceneBuilder {
+	pub fn new(tokenizer: RayTokenizer) -> Result<RaySceneBuilder, TokenizationError> {
+        let tokens = tokenizer.collect::<Result<Vec<_>, TokenizationError>>()?;
+        let mut peekable_tokens = tokens.iter().peekable();
+
 		RaySceneBuilder {
 			lights: Vec::new(),
 			objects: Vec::new(),
             root_transform: TransformNode::root(),
 			camera: None,
 			ambient: None,
-		}.parse_scene(tokenizer)
+		}.parse_scene(&mut peekable_tokens)
 	}
 
-	fn parse_scene(self, tokenizer: &mut Tokenizer) -> RaySceneBuilder {
+	fn parse_scene(self, tokenizer: &mut Tokenizer) -> Result<RaySceneBuilder, TokenizationError> {
 		// TODO version parsing at top
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
@@ -42,7 +49,7 @@ impl RaySceneBuilder {
         // TODO: this should loop until EOF, then return
         let token_option = tokenizer.peek();
         match token_option {
-            Some(token) => match token {
+            Some(&&token) => match token {
                 Token::Sphere |
                 Token::Box |
                 Token::Square |
@@ -66,7 +73,7 @@ impl RaySceneBuilder {
             None => unimplemented!(), // EOF
         }
 
-        self
+        Ok(self)
 	}
 
 	pub fn create_scene(&self) -> Scene {
@@ -95,7 +102,7 @@ impl TransformableElementBuilder {
     fn parse_transformable_element(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
         let token_option = tokenizer.peek();
         match token_option {
-            Some(token) => match token {
+            Some(&&token) => match token {
                 Token::Sphere |
                 Token::Box |
                 Token::Square |
@@ -140,7 +147,7 @@ impl GeometryBuilder {
     fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
         let token_option = tokenizer.peek();
         match token_option {
-            Some(token) => match token {
+            Some(&&token) => match token {
                 Token::Sphere => unimplemented!(),
                 Token::Box => unimplemented!(),
                 Token::Square => unimplemented!(),
@@ -166,7 +173,7 @@ impl GeometryBuilder {
         loop {
             let token_option = tokenizer.peek();
             match token_option {
-                Some(token) => match token {
+                Some(&&token) => match token {
                     Token::Material => unimplemented!(),
                     Token::Name => unimplemented!(),
                     Token::RBrace => unimplemented!(),
@@ -197,7 +204,7 @@ impl GroupBuilder {
         loop {
             let token_option = tokenizer.peek();
             match token_option {
-                Some(token) => match token {
+                Some(&&token) => match token {
                     Token::Sphere |
                     Token::Box |
                     Token::Square |
