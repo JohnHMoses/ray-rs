@@ -1,7 +1,8 @@
-mod tokenizer;
+mod ray_tokenizer;
 mod ray_scene_builder;
+pub mod error;
 
-use self::tokenizer::Tokenizer;
+use self::ray_tokenizer::RayTokenizer;
 use self::ray_scene_builder::SceneBuilder;
 
 use super::scene::Scene;
@@ -14,14 +15,14 @@ pub trait Parser {
 
 /// Parser for `.ray` files
 pub struct RayParser<'a> {
-	tokenizer: Tokenizer<'a>,
+	tokenizer: RayTokenizer<'a>,
 }
 
 impl<'a> RayParser<'a> {
 	/// Given a string slice representing a `.ray` file, creates
 	/// a parser that can return a generalized Scene
 	pub fn new(input: &str) -> RayParser {
-		let tokenizer = Tokenizer::new(input);
+		let tokenizer = RayTokenizer::new(input);
 
 		RayParser { tokenizer }
 	}

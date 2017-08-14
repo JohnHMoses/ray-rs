@@ -6,8 +6,7 @@
 use cgmath::{Vector3};
 
 use super::*;
-use super::tokenizer::Tokenizer;
-use super::tokenizer::token::Token;
+use super::ray_tokenizer::RayTokenizer;
 
 pub struct SceneBuilder {
 	lights: Vec<LightBuilder>,
@@ -28,7 +27,7 @@ impl SceneBuilder {
 		}
 	}
 
-	pub fn parse_scene(&mut self, tokenizer: &mut Tokenizer) {
+	pub fn parse_scene(&mut self, tokenizer: &mut RayTokenizer) {
 		// TODO
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
