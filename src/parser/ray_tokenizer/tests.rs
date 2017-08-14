@@ -40,43 +40,43 @@ box {
 #[test]
 fn keyword_tokenize_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(KEYWORD_SAMPLE);
-    let tokens: Vec<token::Token> = tokenizer.collect();
+    let tokenizer = RayTokenizer::new(KEYWORD_SAMPLE);
+    let tokens: Result<Vec<token::Token>, _> = tokenizer.collect();
     let expected = [Camera, PointLight];
-    assert!(tokens.eq(&expected));
+    assert!(tokens.unwrap().eq(&expected));
 }
 #[test]
 fn whitespace_tokenize_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(WHITESPACE_SAMPLE);
-    let tokens: Vec<token::Token> = tokenizer.collect();
-    assert_eq!(tokens.len(), 0);
+    let tokenizer = RayTokenizer::new(WHITESPACE_SAMPLE);
+    let tokens: Result<Vec<token::Token>, _> = tokenizer.collect();
+    assert_eq!(tokens.unwrap().len(), 0);
 }
 
 #[test]
 fn number_tokenize_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(NUMBERS_SAMPLE);
-    let tokens: Vec<token::Token> = tokenizer.collect();
+    let tokenizer = RayTokenizer::new(NUMBERS_SAMPLE);
+    let tokens: Result<Vec<token::Token>, _> = tokenizer.collect();
     let expected = [Scalar(-10f64), Scalar(500.00001f64), Scalar(0.0f64), Scalar(9f64)];
-    assert!(tokens.iter().eq(expected.iter()));
+    assert!(tokens.unwrap().iter().eq(expected.iter()));
 }
 #[test]
 fn punctuation_tokenize_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(PUNCTUATION_SAMPLE);
-    let tokens: Vec<token::Token> = tokenizer.collect();
+    let tokenizer = RayTokenizer::new(PUNCTUATION_SAMPLE);
+    let tokens: Result<Vec<token::Token>, _> = tokenizer.collect();
     let expected = [Comma, Semicolon, LParen, RParen, LBrace, RBrace];
     println!("{:?}", tokens);
     println!("{:?}", expected.iter());
-    assert!(tokens.iter().eq(expected.iter()));
+    assert!(tokens.unwrap().iter().eq(expected.iter()));
 }
 
 #[test]
 fn camera_parse_test() {
     use super::*;
-    let tokenizer = Tokenizer::new(CAMERA_SAMPLE);
-    let tokens: Vec<token::Token> = tokenizer.collect();
+    let tokenizer = RayTokenizer::new(CAMERA_SAMPLE);
+    let tokens: Result<Vec<token::Token>, _> = tokenizer.collect();
     let expected = [Camera, LBrace,
         Ident("position"), Equals, LParen, Scalar(4f64), Comma, Scalar(0f64), Comma, Scalar(0f64), RParen, Semicolon,
         Ident("viewdir"), Equals, LParen, Minus, Scalar(1f64), Comma, Scalar(0f64), Comma, Scalar(0f64), RParen, Semicolon,
@@ -85,5 +85,5 @@ fn camera_parse_test() {
         RBrace];
     //println!("{:?}", tokens);
     //println!("{:?}", expected.iter());
-    assert!(tokens.iter().eq(expected.iter()))
+    assert!(tokens.unwrap().iter().eq(expected.iter()))
 }

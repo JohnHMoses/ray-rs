@@ -6,10 +6,12 @@
 use cgmath::{Vector3};
 
 use super::*;
-use super::tokenizer::Tokenizer;
-use super::tokenizer::token::Token;
+use super::ray_tokenizer::RayTokenizer;
+use super::ray_tokenizer::Token;
 
 use super::super::scene::TransformNode;
+
+type Tokenizer<'a> = RayTokenizer<'a>;
 
 pub struct RaySceneBuilder {
 	lights: Vec<LightBuilder>,

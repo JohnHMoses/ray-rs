@@ -1,69 +1,73 @@
-pub mod token;
 pub mod tests;
+
+mod token;
+
+pub use self::token::Token;
 
 use std::iter::Iterator;
 use regex::Regex;
 
-use self::token::Token;
+use super::error::TokenizationError;
 
-// TODO: rename RayTokenizer
-pub struct Tokenizer<'a> {
+pub struct RayTokenizer<'a> {
     /// input stream
     input: &'a str,
-    /// last read token, if it exists
-    un_get_token: Option<token::Token<'a>>,
 
     position: usize
 }
 
-impl<'a> Tokenizer<'a>  {
-    pub fn new(input: &'a str) -> Tokenizer<'a> {
-        Tokenizer { input, position: 0, un_get_token: None }
+impl<'a> RayTokenizer<'a>  {
+
+    pub fn new(input: &'a str) -> RayTokenizer<'a> {
+        RayTokenizer { input, position: 0}
     }
 
-    fn next_token(&mut self) -> Option<Token<'a>> {
+    fn next_token(&mut self) -> Result<Token<'a>, TokenizationError> {
         // Eliminate whitespace
         self.lex_whitespace();
         if self.position >= self.input.len() {
-            return None;
+            return Err(TokenizationError::new("Out"));
         }
         match self.input.chars().nth(self.position).unwrap() {
-            '\'' => self.lex_strlit(),
+            '\'' => self.lex_bareword(),
             ';' => {
                 self.position += 1;
-                Some(Token::Semicolon)
+                Ok(Token::Semicolon)
             },
             ',' => {
                 self.position += 1;
-                Some(Token::Comma)
+                Ok(Token::Comma)
             },
             '{' => {
                 self.position += 1;
-                Some(Token::LBrace)
+                Ok(Token::LBrace)
             },
             '}' => {
                 self.position += 1;
-                Some(Token::RBrace)
+                Ok(Token::RBrace)
             },
             '(' => {
                 self.position += 1;
-                Some(Token::LParen)
+                Ok(Token::LParen)
             },
             ')' => {
                 self.position += 1;
-                Some(Token::RParen)
+                Ok(Token::RParen)
             },
             '=' => {
                 self.position += 1;
-                Some(Token::Equals)
+                Ok(Token::Equals)
             },
             '-' => {
                 self.position += 1;
-                Some(Token::Minus)
-            }
+                self.lex_numlit()
+            },
+            '.' => {
+                Err(TokenizationError::new("blah"))
+            },
             x if x.is_alphabetic() => self.lex_bareword(),
             x if x.is_numeric() => self.lex_numlit(),
-            x => panic!("Couldn't parse at {}:{}", self.position, x)
+            x => Err(TokenizationError::new(format!("Couldn't parse at {}:{}", self.position, x)))
         }
     }
 
@@ -77,20 +81,20 @@ impl<'a> Tokenizer<'a>  {
         }
     }
 
-    fn lex_strlit(&mut self) -> Option<Token<'a>> {
+    fn lex_strlit(&mut self) -> Result<Token<'a>, TokenizationError> {
         lazy_static! {
             static ref RE: Regex = Regex::new(r"^'([^']|\\')*'").unwrap();
         }
         if let Some(result) = RE.find(&self.input[self.position..]) {
             let start = self.position + result.start();
             let end = self.position + result.end();
-            let token = Some(Token::StrLit(&self.input[start..end]));
+            let token = Token::StrLit(&self.input[start..end]);
             self.position = end;
-            return token
+            return Ok(token)
         }
-        None
+        Err(TokenizationError::new("Did not find valid string literal"))
     }
-    fn lex_numlit(&mut self) -> Option<Token<'a>> {
+    fn lex_numlit(&mut self) -> Result<Token<'a>, TokenizationError> {
        lazy_static! {
             static ref RE: Regex = Regex::new(r"[[:digit:]]").unwrap();
         }
@@ -98,13 +102,13 @@ impl<'a> Tokenizer<'a>  {
             let start = self.position + result.start();
             let end = self.position + result.end();
             let value = self.input[start..end].parse().unwrap();
-            let token = Some(Token::Scalar(value));
+            let token = Token::Scalar(value);
             self.position = end;
-            return token
+            return Ok(token)
         }
-        None
+        Err(TokenizationError::new("Did not find valid number"))
     }
-    fn lex_bareword(&mut self) -> Option<Token<'a>> {
+    fn lex_bareword(&mut self) -> Result<Token<'a>, TokenizationError> {
         lazy_static! {
             static ref RE: Regex = Regex::new(r"[[:alpha:]]+[[[:alpha:]]-_]*").unwrap();
         }
@@ -114,29 +118,33 @@ impl<'a> Tokenizer<'a>  {
             let value = &self.input[start..end];
             //println!("{}:{}", start, value);
             let token = match value {
-                "camera" => Some(Token::Camera),
-                "point_light" => Some(Token::PointLight),
-                "directional_light" => Some(Token::DirectionalLight),
-                "ambient_light" => Some(Token::AmbientLight),
-                "sphere" => Some(Token::Sphere),
-                "box" => Some(Token::Box),
-                "cylinder" => Some(Token::Cylinder),
-                "cone" => Some(Token::Cone),
-                "trimesh" => Some(Token::Trimesh),
-                "SBT-raytracer" => Some(Token::SbtRaytracer),
-                _ => Some(Token::Ident(value))
+                "camera" => Token::Camera,
+                "point_light" => Token::PointLight,
+                "directional_light" => Token::DirectionalLight,
+                "ambient_light" => Token::AmbientLight,
+                "sphere" => Token::Sphere,
+                "box" => Token::Box,
+                "cylinder" => Token::Cylinder,
+                "cone" => Token::Cone,
+                "trimesh" => Token::Trimesh,
+                "SBT-raytracer" => Token::SbtRaytracer,
+                _ => Token::Ident(value)
             };
             self.position = end;
-            return token
+            return Ok(token)
+        }
+        Err(TokenizationError::new("Couldn't pares bareword"))
+    }
+}
+
+impl<'a> Iterator for RayTokenizer<'a> {
+    type Item = Result<Token<'a>, TokenizationError>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.next_token();
+        // TODO: Correctly distinguish between the out of tokens state and an error
+        if next.is_ok(){
+            return Some(next)
         }
         return None
     }
 }
-
-impl<'a> Iterator for Tokenizer<'a> {
-    type Item = Token<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        return self.next_token();
-    }
-}
-
