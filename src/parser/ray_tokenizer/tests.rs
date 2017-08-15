@@ -87,3 +87,47 @@ fn camera_parse_test() {
     //println!("{:?}", expected.iter());
     assert!(tokens.unwrap().iter().eq(expected.iter()))
 }
+
+#[test]
+fn peekable_read_test() {
+    use super::*;
+    let tokens = vec![token::Token::Camera, token::Token::LBrace, token::Token::RBrace];
+    let mut peekable = tokens.iter().peekable();
+
+    // attempt to read expected tokens
+    let camera = peekable.read( token::Token::Camera ).unwrap();
+    assert_eq!(camera, tokens[0]);
+    let left_brace = peekable.read( token::Token::LBrace ).unwrap();
+    assert_eq!(left_brace, tokens[1]);
+    let right_brace = peekable.read( token::Token::RBrace ).unwrap();
+    assert_eq!(right_brace, tokens[2]);
+}
+
+#[test]
+fn peekable_read_value_test() {
+    use super::*;
+    let tokens = vec![
+        token::Token::Ident("foo"),
+        token::Token::StrLit("bar"),
+        token::Token::Scalar(845f64)
+    ];
+
+    let mut peekable = tokens.iter().peekable();
+    let foo = peekable.read( token::Token::Ident("_") ).unwrap();
+    assert_eq!(foo, tokens[0]);
+    let bar = peekable.read( token::Token::StrLit("_") ).unwrap();
+    assert_eq!(bar, tokens[1]);
+    let baz = peekable.read( token::Token::Scalar(0f64) ).unwrap();
+    assert_eq!(baz, tokens[2]);
+}
+
+#[test]
+#[should_panic]
+fn peekable_failed_read_test() {
+    use super::*;
+    let tokens = vec![token::Token::Camera];
+    let mut peekable = tokens.iter().peekable();
+
+    // do one fault read, this should panic on unwrap
+    peekable.read( token::Token::SbtRaytracer ).unwrap();
+}
