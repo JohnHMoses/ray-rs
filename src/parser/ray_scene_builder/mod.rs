@@ -182,8 +182,6 @@ impl GeometryBuilder {
                 None => unimplemented!(), // synxtax error, EOF
             }
         }
-
-        SphereBuilder { }
     }
 }
 
