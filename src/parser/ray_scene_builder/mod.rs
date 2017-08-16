@@ -6,6 +6,7 @@
 use cgmath::{Vector3};
 
 use std::iter::Peekable;
+use std::result;
 use std::slice::Iter;
 
 use super::*;
@@ -15,6 +16,7 @@ use super::ray_tokenizer::{RayTokenizer, Readable, Token};
 use super::super::scene::TransformNode;
 
 type Tokenizer<'a> = Peekable<Iter<'a, Token<'a>>>;
+type Result<T> = result::Result<T, TokenizationError>;
 
 pub struct RaySceneBuilder {
 	lights: Vec<LightBuilder>,
@@ -27,8 +29,7 @@ pub struct RaySceneBuilder {
 }
 
 impl RaySceneBuilder {
-	pub fn new(tokenizer: RayTokenizer) -> Result<RaySceneBuilder, TokenizationError> {
-        let tokens = tokenizer.collect::<Result<Vec<_>, TokenizationError>>()?;
+	pub fn new(tokens: Vec<Token>) -> Result<RaySceneBuilder> {
         let mut peekable_tokens = tokens.iter().peekable();
 
 		RaySceneBuilder {
@@ -40,15 +41,15 @@ impl RaySceneBuilder {
 		}.parse_scene(&mut peekable_tokens)
 	}
 
-	fn parse_scene(self, tokenizer: &mut Tokenizer) -> Result<RaySceneBuilder, TokenizationError> {
+	fn parse_scene(mut self, tokenizer: &mut Tokenizer) -> Result<RaySceneBuilder> {
 		// TODO version parsing at top
 		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
 		//	if let Some()
 		//}
         // TODO: this should loop until EOF, then return
-        let token_option = tokenizer.peek();
+        let token_option = tokenizer.peek().map(|t| *t);
         match token_option {
-            Some(&&token) => match token {
+            Some(token) => match *token {
                 Token::Sphere |
                 Token::Box |
                 Token::Square |
@@ -60,7 +61,7 @@ impl RaySceneBuilder {
                 Token::Scale |
                 Token::Transform |
                 Token::LBrace => {
-                    self.objects.push( TransformableElementBuilder::new(tokenizer, &self.root_transform) )
+                    self.objects.push( TransformableElementBuilder::new(tokenizer, &self.root_transform)? )
                 },
                 Token::PointLight => unimplemented!(),
                 Token::DirectionalLight => unimplemented!(),
@@ -92,16 +93,16 @@ struct TransformableElementBuilder {
 }
 
 impl TransformableElementBuilder {
-    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<TransformableElementBuilder> {
         TransformableElementBuilder {
             element: None,
         }.parse_transformable_element(tokenizer, transform_node)
     }
 
-    fn parse_transformable_element(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> TransformableElementBuilder {
-        let token_option = tokenizer.peek();
+    fn parse_transformable_element(mut self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<TransformableElementBuilder> {
+        let token_option = tokenizer.peek().map(|t| *t);
         match token_option {
-            Some(&&token) => match token {
+            Some(token) => match *token {
                 Token::Sphere |
                 Token::Box |
                 Token::Square |
@@ -111,11 +112,14 @@ impl TransformableElementBuilder {
                 Token::Rotate |
                 Token::Scale |
                 Token::Transform => {
-                    // TODO: check if ; is necessary
-                    self.element = Some(TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node)))
+                    self.element = Some(
+                        TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node)?)
+                    );
                 },
                 Token::LBrace => {
-                    self.element = Some(TransformableElementType::Group(GroupBuilder::new(tokenizer, transform_node)))
+                    self.element = Some(
+                        TransformableElementType::Group(GroupBuilder::new(tokenizer, transform_node)?)
+                    );
                 },
                 Token::Material => unimplemented!(),
                 _ => unimplemented!(), // Syntax error
@@ -123,7 +127,7 @@ impl TransformableElementBuilder {
             None => unimplemented!(), // Syntax error
         }
 
-        self
+        Ok(self)
     }
 }
 
@@ -137,16 +141,16 @@ struct GeometryBuilder {
 //       .ray file. Consider making it handle a generic type T: GeometryBuilderSubtype
 //       and have a single new_and_parse_geometry() method.
 impl GeometryBuilder {
-    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilder> {
         GeometryBuilder {
             element: None,
         }.parse_geometry(tokenizer, transform_node)
     }
 
-    fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GeometryBuilder {
-        let token_option = tokenizer.peek();
+    fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilder> {
+        let token_option = tokenizer.peek().map(|t| *t);
         match token_option {
-            Some(&&token) => match token {
+            Some(token) => match *token {
                 Token::Sphere => unimplemented!(),
                 Token::Box => unimplemented!(),
                 Token::Square => unimplemented!(),
@@ -162,17 +166,17 @@ impl GeometryBuilder {
             None => unimplemented!(), // logic error in parsing
         }
 
-        self
+        Ok(self)
     }
 
-    fn parse_unit_object(tokenizer: &mut Tokenizer, transform_node: &TransformNode) ->  GeometryBuilderSubtype {
+    fn parse_unit_object(tokenizer: &mut Tokenizer, transform_node: &TransformNode) ->  Result<GeometryBuilderSubtype> {
         tokenizer.read(Token::Sphere)?;
         tokenizer.read(Token::LBrace)?;
 
         loop {
-            let token_option = tokenizer.peek();
+            let token_option = tokenizer.peek().map(|t| *t);
             match token_option {
-                Some(&&token) => match token {
+                Some(token) => match *token {
                     Token::Material => unimplemented!(),
                     Token::Name => unimplemented!(),
                     Token::RBrace => unimplemented!(),
@@ -189,19 +193,19 @@ struct GroupBuilder {
 }
 
 impl GroupBuilder {
-    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GroupBuilder {
+    pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GroupBuilder> {
         GroupBuilder {
             elements: Vec::new(),
         }.parse_group(tokenizer, transform_node)
     }
 
-    fn parse_group(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> GroupBuilder {
+    fn parse_group(mut self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GroupBuilder> {
         tokenizer.read( Token::LBrace )?;
 
         loop {
-            let token_option = tokenizer.peek();
+            let token_option = tokenizer.peek().map(|t| *t);
             match token_option {
-                Some(&&token) => match token {
+                Some(token) => match *token {
                     Token::Sphere |
                     Token::Box |
                     Token::Square |
@@ -213,7 +217,7 @@ impl GroupBuilder {
                     Token::Scale |
                     Token::Transform |
                     Token::LBrace => {
-                        self.elements.push( TransformableElementBuilder::new(tokenizer, transform_node) )
+                        self.elements.push( TransformableElementBuilder::new(tokenizer, transform_node)? )
                     },
                     Token::RBrace => {
                         tokenizer.read( Token::RBrace )?;
@@ -226,7 +230,7 @@ impl GroupBuilder {
             }
         }
 
-        self
+        Ok(self)
     }
 }
 
