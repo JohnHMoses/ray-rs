@@ -19,33 +19,37 @@ type Tokenizer<'a> = Peekable<Iter<'a, Token<'a>>>;
 type Result<T> = result::Result<T, TokenizationError>;
 
 pub struct RaySceneBuilder {
-	lights: Vec<LightBuilder>,
-	objects: Vec<TransformableElementBuilder>,
+    lights: Vec<LightBuilder>,
+    objects: Vec<TransformableElementBuilder>,
     root_transform: TransformNode,
-	camera: Option<CameraBuilder>,
-	ambient: Option<Vector3<f64>>,
-	// TODO?: material? Parser.cpp has some weird code for
-	//		  top level material parsering
+    camera: Option<CameraBuilder>,
+    ambient: Option<Vector3<f64>>,
+    // TODO?: material? Parser.cpp has some weird code for
+    //        top level material parsering
 }
 
 impl RaySceneBuilder {
-	pub fn new(tokens: Vec<Token>) -> Result<RaySceneBuilder> {
+    pub fn new(tokens: Vec<Token>) -> Result<RaySceneBuilder> {
         let mut peekable_tokens = tokens.iter().peekable();
 
-		RaySceneBuilder {
-			lights: Vec::new(),
-			objects: Vec::new(),
+        RaySceneBuilder {
+            lights: Vec::new(),
+            objects: Vec::new(),
             root_transform: TransformNode::root(),
-			camera: None,
-			ambient: None,
-		}.parse_scene(&mut peekable_tokens)
-	}
+            camera: None,
+            ambient: None,
+        }.parse_scene(&mut peekable_tokens)
+    }
 
-	fn parse_scene(mut self, tokenizer: &mut Tokenizer) -> Result<RaySceneBuilder> {
-		// TODO version parsing at top
-		//if let Some(Token::SbtRaytracer) = tokenizer.next() {
-		//	if let Some()
-		//}
+    fn parse_scene(mut self, tokenizer: &mut Tokenizer) -> Result<RaySceneBuilder> {
+        tokenizer.read( Token::SbtRaytracer )?;
+
+        if let Token::Scalar(version) = tokenizer.read( Token::Scalar(0f64) )? {
+            if version > 1.1 {
+                return Err(TokenizationError::new("Unsupported SbtRaytracer version"));
+            }
+        }
+
         // TODO: this should loop until EOF, then return
         let token_option = tokenizer.peek().map(|t| *t);
         match token_option {
@@ -74,13 +78,12 @@ impl RaySceneBuilder {
         }
 
         Ok(self)
-	}
+    }
 
-	pub fn create_scene(&self) -> Scene {
-		// TODO
+    pub fn create_scene(&self) -> Scene {
+        // TODO
         unimplemented!();
-	}
-	// TODO: setters
+    }
 }
 
 enum TransformableElementType {
@@ -139,7 +142,6 @@ struct GeometryBuilder {
 
 // NOTE: Geometry builder doesn't have the option of being empty in a well-formed
 //       .ray file. Consider making it handle a generic type T: GeometryBuilderSubtype
-//       and have a single new_and_parse_geometry() method.
 impl GeometryBuilder {
     pub fn new(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilder> {
         GeometryBuilder {
@@ -170,8 +172,8 @@ impl GeometryBuilder {
     }
 
     fn parse_unit_object(tokenizer: &mut Tokenizer, transform_node: &TransformNode) ->  Result<GeometryBuilderSubtype> {
-        tokenizer.read(Token::Sphere)?;
-        tokenizer.read(Token::LBrace)?;
+        tokenizer.read( Token::Sphere )?;
+        tokenizer.read( Token::LBrace )?;
 
         loop {
             let token_option = tokenizer.peek().map(|t| *t);
@@ -247,9 +249,3 @@ enum GeometryBuilderSubtype {
     Scale,
     Transform,
 }
-
-struct SphereBuilder;
-impl SphereBuilder {
-
-}
-
