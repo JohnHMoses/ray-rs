@@ -4,10 +4,19 @@ mod token;
 
 pub use self::token::Token;
 
-use std::iter::Iterator;
+use std::iter::{Iterator, Peekable};
+use std::slice::Iter;
+
 use regex::Regex;
 
 use super::error::TokenizationError;
+
+pub trait Readable<'a> {
+    /// Given an input token, returns that token if the next token matches it.
+    /// If it doesn't match, returns an error.
+    /// Use when there is only one possible token that should be read next.
+    fn read(&mut self, pattern: Token<'a>) -> Result<Token<'a>, TokenizationError>;
+}
 
 pub struct RayTokenizer<'a> {
     /// input stream
@@ -146,5 +155,47 @@ impl<'a> Iterator for RayTokenizer<'a> {
             return Some(next)
         }
         return None
+    }
+}
+
+impl<'a> Readable<'a> for Peekable<Iter<'a, Token<'a>>> {
+    /// Given an input token, returns that token if the iterator's next()
+    /// call also return that token, else it returns an error
+    fn read(&mut self, pattern: Token<'a>) -> Result<Token<'a>, TokenizationError> {
+        if let Some(ref next_token) = self.next() {
+            let copied_token = (**next_token).clone();
+            match copied_token {
+                Token::Ident(_) => {
+                    if let Token::Ident(_) = pattern {
+                        return Ok(copied_token);
+                    } else {
+                        return Err(TokenizationError::new("token mismatch"));
+                    }
+                },
+                Token::StrLit(_) => {
+                    if let Token::StrLit(_) = pattern {
+                        return Ok(copied_token);
+                    } else {
+                        return Err(TokenizationError::new("token mismatch"));
+                    }
+                },
+                Token::Scalar(_) => {
+                    if let Token::Scalar(_) = pattern {
+                        return Ok(copied_token);
+                    } else {
+                        return Err(TokenizationError::new("token mismatch"));
+                    }
+                },
+                _ => {
+                    if pattern == copied_token {
+                        return Ok(copied_token);
+                    } else {
+                        return Err(TokenizationError::new("token mismatch"));
+                    }
+                }
+            }
+        } else {
+            return Err(TokenizationError::new("out of tokens"));
+        }
     }
 }

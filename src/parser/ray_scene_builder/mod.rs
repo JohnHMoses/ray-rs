@@ -10,8 +10,7 @@ use std::slice::Iter;
 
 use super::*;
 use super::error::TokenizationError;
-use super::ray_tokenizer::RayTokenizer;
-use super::ray_tokenizer::Token;
+use super::ray_tokenizer::{RayTokenizer, Readable, Token};
 
 use super::super::scene::TransformNode;
 
