@@ -16,6 +16,7 @@ pub trait Readable<'a> {
     /// If it doesn't match, returns an error.
     /// Use when there is only one possible token that should be read next.
     fn read(&mut self, pattern: Token<'a>) -> Result<Token<'a>, TokenizationError>;
+    fn conditional_read(&mut self, pattern: Token<'a>) -> bool;
 }
 
 pub struct RayTokenizer<'a> {
@@ -162,40 +163,61 @@ impl<'a> Readable<'a> for Peekable<Iter<'a, Token<'a>>> {
     /// Given an input token, returns that token if the iterator's next()
     /// call also return that token, else it returns an error
     fn read(&mut self, pattern: Token<'a>) -> Result<Token<'a>, TokenizationError> {
-        if let Some(ref next_token) = self.next() {
-            let copied_token = (**next_token).clone();
-            match copied_token {
-                Token::Ident(_) => {
-                    if let Token::Ident(_) = pattern {
-                        return Ok(copied_token);
-                    } else {
-                        return Err(TokenizationError::new("token mismatch"));
-                    }
-                },
-                Token::StrLit(_) => {
-                    if let Token::StrLit(_) = pattern {
-                        return Ok(copied_token);
-                    } else {
-                        return Err(TokenizationError::new("token mismatch"));
-                    }
-                },
-                Token::Scalar(_) => {
-                    if let Token::Scalar(_) = pattern {
-                        return Ok(copied_token);
-                    } else {
-                        return Err(TokenizationError::new("token mismatch"));
-                    }
-                },
-                _ => {
-                    if pattern == copied_token {
-                        return Ok(copied_token);
-                    } else {
-                        return Err(TokenizationError::new("token mismatch"));
-                    }
-                }
+        if let Some(next_token) = self.next() {
+            let copied_token = (*next_token).clone();
+            if token_discriminant_equal(pattern, copied_token) {
+                return Ok((*next_token).clone());
+            } else {
+                return Err(TokenizationError::new("unexpected token"));
             }
         } else {
             return Err(TokenizationError::new("out of tokens"));
+        }
+    }
+
+    fn conditional_read(&mut self, pattern: Token<'a>) -> bool {
+        if let Some(token) = self.peek().map(|t| *t) {
+            if token_discriminant_equal(pattern, (*token).clone()) {
+                self.next();
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+}
+
+fn token_discriminant_equal(lhs: Token, rhs: Token) -> bool {
+    match lhs {
+        Token::Ident(_) => {
+            if let Token::Ident(_) = rhs {
+                return true;
+            } else {
+                return false;
+            }
+        },
+        Token::StrLit(_) => {
+            if let Token::StrLit(_) = rhs {
+                return true;
+            } else {
+                return false;
+            }
+        },
+        Token::Scalar(_) => {
+            if let Token::Scalar(_) = rhs {
+                return true;
+            } else {
+                return false;
+            }
+        },
+        lhs => {
+            if lhs == rhs {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 }

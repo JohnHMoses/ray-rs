@@ -3,7 +3,7 @@
 //! a generalized Scene description, so that ray_rs::ray_tracer can render
 //! the given scene.
 
-use cgmath::{Vector3};
+use cgmath::{Matrix, Matrix3, Matrix4, Rad, Vector3, Vector4};
 
 use std::iter::Peekable;
 use std::result;
@@ -87,7 +87,7 @@ impl RaySceneBuilder {
 }
 
 enum TransformableElementType {
-    Geometry(GeometryBuilder),
+    Geometry(Box<GeometryBuilder>),
     Group(GroupBuilder),
 }
 
@@ -116,7 +116,7 @@ impl TransformableElementBuilder {
                 Token::Scale |
                 Token::Transform => {
                     self.element = Some(
-                        TransformableElementType::Geometry(GeometryBuilder::new(tokenizer, transform_node)?)
+                        TransformableElementType::Geometry(Box::new(GeometryBuilder::new(tokenizer, transform_node)?))
                     );
                 },
                 Token::LBrace => {
@@ -137,7 +137,22 @@ impl TransformableElementBuilder {
 struct LightBuilder;
 struct CameraBuilder;
 struct GeometryBuilder {
-   element: Option<GeometryBuilderSubtype>,
+   element: Option<GeometryBuilderType>,
+}
+
+// TODO: these should hold materials when materials are added
+enum GeometryBuilderType {
+    ConcreteGeometryType(TransformNode, GeometryType),
+    TransformableElement(TransformNode, TransformableElementBuilder),
+}
+
+enum GeometryType {
+    Sphere,
+    Box,
+    Square,
+    Cylinder,
+    Cone { capped: bool, height: f64, bottom_radius: f64, top_radius: f64 },
+    Trimesh,
 }
 
 // NOTE: Geometry builder doesn't have the option of being empty in a well-formed
@@ -149,20 +164,28 @@ impl GeometryBuilder {
         }.parse_geometry(tokenizer, transform_node)
     }
 
-    fn parse_geometry(self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilder> {
+    fn parse_geometry(mut self, tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilder> {
         let token_option = tokenizer.peek().map(|t| *t);
         match token_option {
             Some(token) => match *token {
-                Token::Sphere => unimplemented!(),
-                Token::Box => unimplemented!(),
-                Token::Square => unimplemented!(),
-                Token::Cylinder => unimplemented!(),
-                Token::Cone => unimplemented!(),
+                Token::Sphere |
+                Token::Box |
+                Token::Square |
+                Token::Cylinder => self.element = Some(
+                    GeometryBuilderType::ConcreteGeometryType(
+                        transform_node.clone(),
+                        GeometryBuilder::parse_unit_object(tokenizer, token)?)
+                    ),
+                Token::Cone => self.element = Some(
+                    GeometryBuilderType::ConcreteGeometryType(
+                        transform_node.clone(),
+                        GeometryBuilder::parse_cone(tokenizer)?)
+                    ),
                 Token::Trimesh => unimplemented!(),
-                Token::Translate => unimplemented!(),
-                Token::Rotate => unimplemented!(),
-                Token::Scale => unimplemented!(),
-                Token::Transform => unimplemented!(),
+                Token::Translate => self.element = Some(GeometryBuilder::parse_translate(tokenizer, transform_node)?),
+                Token::Rotate => self.element = Some(GeometryBuilder::parse_rotate(tokenizer, transform_node)?),
+                Token::Scale => self.element = Some(GeometryBuilder::parse_scale(tokenizer, transform_node)?),
+                Token::Transform => self.element = Some(GeometryBuilder::parse_transform(tokenizer, transform_node)?),
                 _ => unimplemented!(), // syntax error
             },
             None => unimplemented!(), // logic error in parsing
@@ -171,8 +194,10 @@ impl GeometryBuilder {
         Ok(self)
     }
 
-    fn parse_unit_object(tokenizer: &mut Tokenizer, transform_node: &TransformNode) ->  Result<GeometryBuilderSubtype> {
-        tokenizer.read( Token::Sphere )?;
+    // Sphere, Box, Square, Cylinder
+    fn parse_unit_object(tokenizer: &mut Tokenizer, object_type: &Token) ->  Result<GeometryType> {
+        // discard the next token, we already know what object we're parsing from the above
+        tokenizer.next();
         tokenizer.read( Token::LBrace )?;
 
         loop {
@@ -181,13 +206,156 @@ impl GeometryBuilder {
                 Some(token) => match *token {
                     Token::Material => unimplemented!(),
                     Token::Name => unimplemented!(),
-                    Token::RBrace => unimplemented!(),
+                    Token::RBrace => {
+                        tokenizer.read( Token::RBrace )?;
+                        // TODO: add material to return_value
+                        return match *object_type {
+                            Token::Sphere => Ok(GeometryType::Sphere),
+                            Token::Box => Ok(GeometryType::Box),
+                            Token::Square => Ok(GeometryType::Square),
+                            Token::Cylinder => Ok(GeometryType::Cylinder),
+                            _ => Err(TokenizationError::new("unexpected token")),
+                        }
+
+                    },
                     _ => unimplemented!(), // syntax error, unexpected token
                 },
                 None => unimplemented!(), // synxtax error, EOF
             }
         }
     }
+
+    fn parse_cone(tokenizer: &mut Tokenizer) ->  Result<GeometryType> {
+
+        let mut capped = true;
+        let mut height = 1.0f64;
+        let mut bottom_radius = 1.0f64;
+        let mut top_radius = 0.0f64;
+
+        tokenizer.read( Token::Cone )?;
+        tokenizer.read( Token::RBrace )?;
+
+        loop {
+            let token_option = tokenizer.peek().map(|t| *t);
+            match token_option {
+                Some(token) => match *token {
+                    Token::Material => unimplemented!(),
+                    Token::Name => unimplemented!(),
+                    Token::Capped => capped = parse_boolean_expression(tokenizer)?,
+                    Token::Height => height = parse_scalar_expression(tokenizer)?,
+                    Token::BottomRadius => bottom_radius = parse_scalar_expression(tokenizer)?,
+                    Token::TopRadius => top_radius = parse_scalar_expression(tokenizer)?,
+
+                    Token::RBrace => {
+                        tokenizer.read( Token::RBrace )?;
+                        // TODO: add material to return_value
+                        return Ok(GeometryType::Cone {
+                            capped,
+                            height,
+                            bottom_radius,
+                            top_radius,
+                        });
+
+
+                    },
+                    _ => unimplemented!(), // syntax error, unexpected token
+                },
+                None => unimplemented!(), // synxtax error, EOF
+            }
+        }
+
+    }
+
+    fn parse_translate(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilderType> {
+        tokenizer.read( Token::Translate )?;
+        tokenizer.read( Token::LParen )?;
+        let x = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let y = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let z = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+
+        let transform = transform_node.create_child(Matrix4::from_translation(Vector3::new(x, y, z)));
+        let subelement = TransformableElementBuilder::new(tokenizer, &transform)?;
+
+        tokenizer.read( Token::RParen )?;
+        tokenizer.conditional_read( Token::Semicolon );
+
+        Ok(GeometryBuilderType::TransformableElement(transform, subelement))
+    }
+
+    fn parse_rotate(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilderType> {
+        tokenizer.read( Token::Rotate )?;
+        tokenizer.read( Token::LParen )?;
+        let x = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let y = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let z = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let angle = parse_scalar(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+
+        // TODO: double check if glm uses radians or degrees
+        let rotation = Matrix3::from_axis_angle(Vector3::new(x, y, z), Rad(angle));
+        let transform = transform_node.create_child(Matrix4::from(rotation));
+        let subelement = TransformableElementBuilder::new(tokenizer, &transform)?;
+
+        tokenizer.read( Token::RParen )?;
+        tokenizer.conditional_read( Token::Semicolon );
+
+        Ok(GeometryBuilderType::TransformableElement(transform, subelement))
+    }
+
+    fn parse_scale(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilderType> {
+        tokenizer.read( Token::Scale )?;
+        tokenizer.read( Token::LParen )?;
+        let x = parse_scalar(tokenizer)?;
+        let y;
+        let z;
+
+        if let Some( &Token::Scalar(_) ) = tokenizer.peek().map(|t| *t) {
+            y = parse_scalar(tokenizer)?;
+            tokenizer.read( Token::Comma )?;
+            z = parse_scalar(tokenizer)?;
+            tokenizer.read( Token::Comma )?;
+        } else {
+            y = x;
+            z = x;
+        }
+
+        let transform = transform_node.create_child(Matrix4::from_nonuniform_scale(x, y, z));
+        let subelement = TransformableElementBuilder::new(tokenizer, &transform)?;
+
+        tokenizer.read( Token::RParen )?;
+        tokenizer.conditional_read( Token::Semicolon );
+
+        Ok(GeometryBuilderType::TransformableElement(transform, subelement))
+    }
+
+    fn parse_transform(tokenizer: &mut Tokenizer, transform_node: &TransformNode) -> Result<GeometryBuilderType> {
+        tokenizer.read( Token::Transform )?;
+        tokenizer.read( Token::LParen )?;
+        let row1 = parse_vector4(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let row2 = parse_vector4(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let row3 = parse_vector4(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+        let row4 = parse_vector4(tokenizer)?;
+        tokenizer.read( Token::Comma )?;
+
+        // TODO: check that these are being put in the right order
+        let transform = transform_node.create_child(Matrix4::from_cols(row1, row2, row3, row4).transpose());
+        let subelement = TransformableElementBuilder::new(tokenizer, &transform)?;
+
+        tokenizer.read( Token::RParen )?;
+        tokenizer.conditional_read( Token::Semicolon );
+
+        Ok(GeometryBuilderType::TransformableElement(transform, subelement))
+    }
+
 }
 
 struct GroupBuilder {
@@ -236,16 +404,26 @@ impl GroupBuilder {
     }
 }
 
-// TODO: these should hold materials when materials are added
-enum GeometryBuilderSubtype {
-    Sphere,
-    Box,
-    Square,
-    Cylinder,
-    Cone,
-    Trimesh,
-    Translate,
-    Rotate,
-    Scale,
-    Transform,
+fn parse_boolean_expression(tokenizer: &mut Tokenizer) -> Result<bool> {
+    unimplemented!();
+}
+
+fn parse_scalar_expression(tokenizer: &mut Tokenizer) -> Result<f64> {
+    unimplemented!();
+}
+
+fn parse_vector4_expression(tokenizer: &mut Tokenizer) -> Result<Vector4<f64>> {
+    unimplemented!();
+}
+
+fn parse_boolean(tokenizer: &mut Tokenizer) -> Result<bool> {
+    unimplemented!();
+}
+
+fn parse_scalar(tokenizer: &mut Tokenizer) -> Result<f64> {
+    unimplemented!();
+}
+
+fn parse_vector4(tokenizer: &mut Tokenizer) -> Result<Vector4<f64>> {
+    unimplemented!();
 }

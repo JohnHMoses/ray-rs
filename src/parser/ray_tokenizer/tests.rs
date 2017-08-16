@@ -131,3 +131,20 @@ fn peekable_failed_read_test() {
     // do one fault read, this should panic on unwrap
     peekable.read( token::Token::SbtRaytracer ).unwrap();
 }
+
+#[test]
+fn peekable_conditional_read_test() {
+    use super::*;
+    let tokens = vec![
+        token::Token::Camera,
+        token::Token::LBrace,
+        token::Token::RBrace,
+    ];
+
+    let mut peekable = tokens.iter().peekable();
+
+    assert!(peekable.conditional_read( token::Token::Camera ));
+    assert_eq!(*(peekable.next().unwrap()), token::Token::LBrace);
+    assert!(!peekable.conditional_read( token::Token::SbtRaytracer ));
+    assert_eq!(*(peekable.next().unwrap()), token::Token::RBrace);
+}
