@@ -1,9 +1,9 @@
-extern crate ray_rs;
+extern crate ray;
 
 use std::env;
 use std::process;
 
-use ray_rs::config;
+use ray::config;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,7 +13,7 @@ fn main() {
         process::exit(1);
     });
 
-    if let Err(e) = ray_rs::run(config) {
+    if let Err(e) = ray::run(config) {
         println!("Application error: {}", e);
         process::exit(1);
     }
